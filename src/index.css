@@ -31,30 +31,30 @@
 }
 
 [data-theme="light"] {
-  --bg-primary: #f0f2f5;
-  --bg-secondary: #ffffff;
-  --card-bg: rgba(255, 255, 255, 0.7);
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-panel: rgba(255, 255, 255, 0.9);
+  --bg-primary: #f5f3ff;
+  --bg-secondary: #faf8ff;
+  --card-bg: rgba(245, 240, 255, 0.85);
+  --glass-bg: rgba(250, 248, 255, 0.9);
+  --glass-panel: rgba(245, 240, 255, 0.92);
   
-  --border-color: rgba(0, 0, 0, 0.08);
-  --border-glow: rgba(0, 0, 0, 0.05); /* Softer shadow for light mode */
+  --border-color: rgba(124, 58, 237, 0.12);
+  --border-glow: rgba(124, 58, 237, 0.1);
   
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
+  --text-primary: #1e1033;
+  --text-secondary: #6b6080;
   
-  --accent-primary: #d97706; /* A slightly deeper amber for better light contrast */
-  --accent-secondary: #ea580c;
+  --accent-primary: #7c3aed;
+  --accent-secondary: #a855f7;
   
-  --nav-bg: rgba(255, 255, 255, 0.85);
-  --nav-border: rgba(0, 0, 0, 0.08);
+  --nav-bg: rgba(245, 243, 255, 0.92);
+  --nav-border: rgba(124, 58, 237, 0.1);
 
-  --btn-hover-bg: #111827;
-  --btn-hover-text: #ffffff;
+  --btn-hover-bg: #1e1033;
+  --btn-hover-text: #f5f3ff;
 
-  --noise-opacity: 0.03;
-  --image-overlay: rgba(255,255,255,0.85);
-  --bottom-section-bg: rgba(0,0,0,0.02);
+  --noise-opacity: 0.02;
+  --image-overlay: rgba(245, 240, 255, 0.85);
+  --bottom-section-bg: rgba(124, 58, 237, 0.03);
 }
 
 * {
@@ -134,7 +134,7 @@ a {
 }
 
 [data-theme="light"] .custom-cursor {
-  border-color: rgba(0,0,0,0.5);
+  border-color: rgba(124, 58, 237, 0.5);
 }
 
 .custom-cursor.hovering {
@@ -144,7 +144,7 @@ a {
 }
 
 [data-theme="light"] .custom-cursor.hovering {
-  background-color: rgba(0, 0, 0, 0.05); /* Softer cursor logic for light mode */
+  background-color: rgba(124, 58, 237, 0.1);
 }
 
 .custom-cursor-dot {
@@ -207,8 +207,8 @@ a {
 }
 
 [data-theme="light"] .glass-panel {
-  background: rgba(255, 255, 255, 0.75);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.03);
+  background: rgba(245, 240, 255, 0.85);
+  box-shadow: 0 8px 32px rgba(124, 58, 237, 0.05);
 }
 
 .hover-glow:hover {
@@ -218,6 +218,6 @@ a {
 }
 
 [data-theme="light"] .hover-glow:hover {
-  border-color: rgba(0, 0, 0, 0.15);
-  box-shadow: 0 10px 40px var(--border-glow);
+  border-color: rgba(124, 58, 237, 0.3);
+  box-shadow: 0 10px 40px rgba(124, 58, 237, 0.1);
 }
