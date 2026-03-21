@@ -75,8 +75,35 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Game State
+  const [selectedGame, setSelectedGame] = useState(0); // 0-4 for 5 games
   const [board, setBoard] = useState(Array(9).fill(null));
   const [xIsNext, setXIsNext] = useState(true);
+  const [gameMode, setGameMode] = useState('human'); // 'human' or 'ai'
+  
+  // Reflex Game State
+  const [reflexWaiting, setReflexWaiting] = useState(false);
+  const [reflexReady, setReflexReady] = useState(false);
+  const [reflexStartTime, setReflexStartTime] = useState(null);
+  const [reflexTime, setReflexTime] = useState(null);
+  const [reflexBestTime, setReflexBestTime] = useState(null);
+  
+  // Memory Game State
+  const [memoryCards, setMemoryCards] = useState([]);
+  const [flippedCards, setFlippedCards] = useState([]);
+  const [matchedCards, setMatchedCards] = useState([]);
+  const [memoryMoves, setMemoryMoves] = useState(0);
+  
+  // Number Guess Game State
+  const [targetNumber, setTargetNumber] = useState(Math.floor(Math.random() * 100) + 1);
+  const [guessInput, setGuessInput] = useState('');
+  const [guessHistory, setGuessHistory] = useState([]);
+  const [guessMessage, setGuessMessage] = useState('Guess a number between 1-100');
+  
+  // Math Quiz Game State
+  const [mathQuestion, setMathQuestion] = useState({ num1: 5, num2: 3, op: '+' });
+  const [mathAnswer, setMathAnswer] = useState('');
+  const [mathScore, setMathScore] = useState(0);
+  const [mathTotal, setMathTotal] = useState(0);
   
   const cursorRef = useRef(null);
   const cursorDotRef = useRef(null);
@@ -103,6 +130,160 @@ function App() {
     setBoard(Array(9).fill(null));
     setXIsNext(true);
   };
+
+  // AI Move for Tic Tac Toe
+  const makeAIMove = (currentBoard) => {
+    const availableSpots = currentBoard.map((cell, idx) => cell === null ? idx : null).filter(val => val !== null);
+    if (availableSpots.length === 0) return;
+    
+    // Simple AI: random move
+    const randomIndex = availableSpots[Math.floor(Math.random() * availableSpots.length)];
+    const newBoard = [...currentBoard];
+    newBoard[randomIndex] = 'O';
+    setBoard(newBoard);
+    setXIsNext(true);
+  };
+
+  const handleTicTacClickAI = (index) => {
+    if (board[index] || calculateWinner(board) || !xIsNext) return;
+    const newBoard = [...board];
+    newBoard[index] = 'X';
+    setBoard(newBoard);
+    setXIsNext(false);
+    
+    if (!calculateWinner(newBoard) && newBoard.some(cell => cell === null)) {
+      setTimeout(() => makeAIMove(newBoard), 500);
+    }
+  };
+
+  // Reflex Game
+  const startReflexGame = () => {
+    setReflexWaiting(true);
+    setReflexReady(false);
+    setReflexTime(null);
+    const delay = Math.random() * 3000 + 2000;
+    setTimeout(() => {
+      setReflexReady(true);
+      setReflexWaiting(false);
+      setReflexStartTime(Date.now());
+    }, delay);
+  };
+
+  const handleReflexClick = () => {
+    if (reflexWaiting) {
+      setReflexWaiting(false);
+      setReflexTime('Too early! Wait for green.');
+    } else if (reflexReady) {
+      const reactionTime = Date.now() - reflexStartTime;
+      setReflexTime(reactionTime);
+      if (!reflexBestTime || reactionTime < reflexBestTime) {
+        setReflexBestTime(reactionTime);
+      }
+      setReflexReady(false);
+    }
+  };
+
+  // Memory Game
+  const emojis = ['🎮', '🎯', '🎨', '🎭', '🎪', '🎸', '🎺', '🎻'];
+  
+  const initMemoryGame = () => {
+    const shuffled = [...emojis, ...emojis]
+      .sort(() => Math.random() - 0.5)
+      .map((emoji, idx) => ({ id: idx, emoji, flipped: false }));
+    setMemoryCards(shuffled);
+    setFlippedCards([]);
+    setMatchedCards([]);
+    setMemoryMoves(0);
+  };
+
+  const handleMemoryCardClick = (index) => {
+    if (flippedCards.length === 2 || flippedCards.includes(index) || matchedCards.includes(index)) return;
+    
+    const newFlipped = [...flippedCards, index];
+    setFlippedCards(newFlipped);
+    
+    if (newFlipped.length === 2) {
+      setMemoryMoves(memoryMoves + 1);
+      const [first, second] = newFlipped;
+      if (memoryCards[first].emoji === memoryCards[second].emoji) {
+        setMatchedCards([...matchedCards, first, second]);
+        setFlippedCards([]);
+      } else {
+        setTimeout(() => setFlippedCards([]), 1000);
+      }
+    }
+  };
+
+  // Number Guess Game
+  const handleNumberGuess = () => {
+    const guess = parseInt(guessInput);
+    if (isNaN(guess)) return;
+    
+    const newHistory = [...guessHistory, guess];
+    setGuessHistory(newHistory);
+    
+    if (guess === targetNumber) {
+      setGuessMessage(`🎉 Correct! You got it in ${newHistory.length} tries!`);
+    } else if (guess < targetNumber) {
+      setGuessMessage('📈 Too low! Try higher');
+    } else {
+      setGuessMessage('📉 Too high! Try lower');
+    }
+    setGuessInput('');
+  };
+
+  const resetNumberGuess = () => {
+    setTargetNumber(Math.floor(Math.random() * 100) + 1);
+    setGuessInput('');
+    setGuessHistory([]);
+    setGuessMessage('Guess a number between 1-100');
+  };
+
+  // Math Quiz Game
+  const generateMathQuestion = () => {
+    const ops = ['+', '-', '×'];
+    const op = ops[Math.floor(Math.random() * 3)];
+    let num1 = Math.floor(Math.random() * 20) + 1;
+    let num2 = Math.floor(Math.random() * 20) + 1;
+    
+    if (op === '-' && num2 > num1) {
+      [num1, num2] = [num2, num1];
+    }
+    
+    setMathQuestion({ num1, num2, op });
+    setMathAnswer('');
+  };
+
+  const handleMathSubmit = () => {
+    const { num1, num2, op } = mathQuestion;
+    let correct = 0;
+    
+    switch(op) {
+      case '+': correct = num1 + num2; break;
+      case '-': correct = num1 - num2; break;
+      case '×': correct = num1 * num2; break;
+    }
+    
+    setMathTotal(mathTotal + 1);
+    if (parseInt(mathAnswer) === correct) {
+      setMathScore(mathScore + 1);
+    }
+    generateMathQuestion();
+  };
+
+  // Initialize games on mount
+  useEffect(() => {
+    initMemoryGame();
+    generateMathQuestion();
+  }, []);
+
+  const games = [
+    { id: 0, name: 'Tic Tac Toe', icon: '⭕', desc: 'Classic strategy game' },
+    { id: 1, name: 'Reflex Test', icon: '⚡', desc: 'Test your reaction speed' },
+    { id: 2, name: 'Memory Match', icon: '🎴', desc: 'Match emoji pairs' },
+    { id: 3, name: 'Number Guess', icon: '🔢', desc: 'Guess 1-100' },
+    { id: 4, name: 'Math Quiz', icon: '➕', desc: 'Quick math challenge' }
+  ];
 
   const experiences = [
     {
@@ -160,6 +341,15 @@ function App() {
   ];
 
   const projects = [
+    {
+      tag: "FLUTTER APP",
+      title: "InstantPick",
+      description: "Modern Flutter-based mobile application with seamless UI/UX, real-time features and cross-platform compatibility.",
+      tech: ["Flutter", "Dart", "Firebase"],
+      github: "https://github.com/vivekx11/instantpick",
+      demo: "https://github.com/vivekx11/instantpick",
+      img: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&q=80&w=800"
+    },
     {
       tag: "MEMORY GAME",
       title: "Memory Game",
@@ -538,32 +728,30 @@ function App() {
               <div className="hero-split">
                 {/* Left: Name & Info */}
                 <div className="hero-left">
-                  <div className="badge primary-badge mb-4">The Developer</div>
-                  <div className="title-content" style={{flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem'}}>
-                    <h1 className="hero-title hero-title-text" style={{lineHeight: '0.9', margin: 0}}>
+                  <div className="badge primary-badge mb-4">Available for new opportunities</div>
+                  <div className="title-content" style={{flexDirection: 'column', alignItems: 'flex-start', gap: '0.2rem'}}>
+                    <h1 className="hero-title">
                       {splitText("Vivek")}
                     </h1>
-                    <h1 className="hero-title hero-title-text text-accent" style={{lineHeight: '0.9', margin: 0}}>
+                    <h1 className="hero-title text-accent" style={{fontWeight: 300}}>
                       {splitText("Sawji")}
                     </h1>
                   </div>
                   
-                  <h3 className="hero-subtitle mt-6 mb-6" style={{maxWidth: '550px'}}>
-                    Developer, problem solver, and tech enthusiast crafting performant, scalable web experiences.
+                  <h3 className="hero-subtitle mt-8 mb-6" style={{maxWidth: '550px', fontWeight: 500, fontSize: '1.2rem', color: 'var(--text-secondary)'}}>
+                    High-end <span className="text-accent">Full-Stack Developer</span> crafting digital products that combine performance with premium aesthetics.
                   </h3>
                   
-                  <div className="hero-badges mt-2">
-                    <div className="badge large-badge">Clean Code & Performance</div>
-                    <div className="badge large-badge">
-                      <span className="pulse-dot-accent-large"></span>
-                      Lottie animation
-                    </div>
-                  </div>
-
-                  <div className="hero-buttons mt-6" style={{display: 'flex', gap: '1rem', flexWrap: 'wrap'}}>
-                    <a href="#projects" className="btn-link btn-shine">View Projects &rarr;</a>
-                    <a href="#contact" className="btn-link btn-shine" style={{borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)', background: 'transparent'}}>Hire Me &rarr;</a>
-                    <a href="resume.pdf" className="btn-link btn-shine"><Download size={16} /> Resume</a>
+                  <div className="hero-buttons mt-4" style={{display: 'flex', gap: '1.25rem', flexWrap: 'wrap', justifyContent: 'flex-start'}}>
+                    <a href="#projects" className="btn-link btn-shine btn-premium">
+                      Explore Work <span className="icon-wrap"><ArrowRight size={18} /></span>
+                    </a>
+                    <a href="#contact" className="btn-link btn-shine btn-premium-secondary">
+                      Start a Project
+                    </a>
+                    <a href="resume.pdf" className="btn-link btn-shine btn-premium-outline">
+                      <Download size={16} /> Resume
+                    </a>
                   </div>
                 </div>
 
@@ -578,31 +766,37 @@ function App() {
                     />
                     <div className="hero-image-border"></div>
                     <div className="hero-image-overlay">
-                      <span>Website * Flutter * Chrome Extensions</span>
+                      <span>Based in Mumbai, India</span>
                     </div>
                   </div>
                   {/* Floating mini cards around image */}
-                  <div className="hero-float-card hero-float-1">
-                    <Sparkles size={16} className="text-accent" />
-                    <span>3+ Years</span>
+                  <div className="hero-float-card hero-float-1 glass-panel">
+                    <div className="icon-circle shadow-sm">
+                      <Zap size={16} className="text-accent" />
+                    </div>
+                    <span>Fast Performance</span>
                   </div>
-                  <div className="hero-float-card hero-float-2">
-                    <Code2 size={16} className="text-accent" />
-                    <span>Full Stack</span>
+                  <div className="hero-float-card hero-float-2 glass-panel">
+                    <div className="icon-circle shadow-sm">
+                      <Layers size={16} className="text-accent" />
+                    </div>
+                    <span>Full Stack Architecture</span>
                   </div>
                 </div>
               </div>
 
-              {/* Overview Section Below Hero */}
+              {/* Overview Section Below Hero - RESTORED ORIGINAL STATS LOCATION */}
               <div className="hero-overview border-top-subtle">
                 <div className="overview-content">
-                  <div className="badge primary-badge">Overview</div>
-                  <p className="hero-bio mt-4">
-                    Focused on clean architecture, smooth UX, and reliable systems across the stack from REST APIs and data models to polished, animated frontends.
-                  </p>
-                  <p className="hero-bio mt-4 text-accent" style={{fontWeight: 500}}>
-                    Working with JavaScript, React, Node.js, MongoDB, Dart and modern tooling to ship robust web and mobile solutions.
-                  </p>
+                  <div className="badge primary-badge">Developer Philosophy</div>
+                  <div className="overview-grid mt-4">
+                    <p className="hero-bio" style={{fontSize: '1.3rem', lineHeight: '1.5', fontWeight: 500}}>
+                      I believe in building software that doesn't just work, but <span className="text-accent underline-accent">inspires</span>. Every pixel and interaction is an opportunity for excellence.
+                    </p>
+                    <p className="text-secondary" style={{fontSize: '0.95rem'}}>
+                      Specializing in React, Node.js, and Cloud Systems to deliver projects that scale seamlessly with business growth.
+                    </p>
+                  </div>
                 </div>
                 <div className="overview-stats">
                   <div className="mini-stat">
@@ -621,7 +815,9 @@ function App() {
               </div>
 
               <div className="bottom-section" style={{background: 'transparent'}}>
-                <div className="badge primary-badge">Mumbai University * BSc CS | 3+ years building projects</div>
+                <div className="hero-trust-text text-secondary">
+                  Trusted by brands and startups worldwide
+                </div>
                 <div className="social-icons-container">
                   <a href="https://github.com/vivekx11" target="_blank" rel="noreferrer" className="social-icon"><Github size={18}/></a>
                   <a href="https://www.linkedin.com/in/vivek-sawji-050a942b8" target="_blank" rel="noreferrer" className="social-icon"><Linkedin size={18}/></a>
@@ -822,12 +1018,23 @@ function App() {
                       </div>
 
                       <div style={{display: 'flex', gap: '1rem', flexWrap: 'wrap'}}>
-                        <a href={project.github} target="_blank" rel="noreferrer" className="btn-link"><Github size={18} /> GitHub</a>
-                        <a href={project.demo} target="_blank" rel="noreferrer" className="btn-link" style={{borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)', background: 'transparent'}}><ExternalLink size={18} /> Live Demo</a>
+                        <a href={project.github} target="_blank" rel="noreferrer" className="btn-link btn-secondary"><Github size={18} /> GitHub</a>
+                        <a href={project.demo} target="_blank" rel="noreferrer" className="btn-link btn-primary"><ExternalLink size={18} /> Live Demo</a>
                       </div>
                     </div>
                   </div>
                 ))}
+                
+                <div className="github-cta-section">
+                  <div className="github-cta-content">
+                    <h3 className="github-cta-title">Explore More Projects</h3>
+                    <p className="github-cta-desc">Check out my complete collection of open-source projects, experiments, and contributions on GitHub</p>
+                    <a href="https://github.com/vivekx11" target="_blank" rel="noreferrer" className="github-cta-button">
+                      <span>Visit GitHub Profile</span>
+                      <ExternalLink size={20} />
+                    </a>
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -913,160 +1120,412 @@ function App() {
                   <form className="contact-form" style={{display: 'flex', flexDirection: 'column', gap: '1.5rem'}}>
                     <div className="contact-row">
                       <div className="contact-field">
-                        <label className="text-secondary" style={{fontWeight: 500}}>Name</label>
+                        <label className="text-secondary" style={{fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem', display: 'block'}}>Name</label>
                         <input type="text" className="contact-input" placeholder="John Doe" />
                       </div>
                       <div className="contact-field">
-                        <label className="text-secondary" style={{fontWeight: 500}}>Email</label>
+                        <label className="text-secondary" style={{fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem', display: 'block'}}>Email</label>
                         <input type="email" className="contact-input" placeholder="you@example.com" />
                       </div>
                     </div>
                     <div className="contact-field">
-                      <label className="text-secondary" style={{fontWeight: 500}}>Project Type</label>
+                      <label className="text-secondary" style={{fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem', display: 'block'}}>Project Type</label>
                       <input type="text" className="contact-input" placeholder="Web app, API, mobile app..." />
                     </div>
                     <div className="contact-field">
-                      <label className="text-secondary" style={{fontWeight: 500}}>Message</label>
+                      <label className="text-secondary" style={{fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem', display: 'block'}}>Message</label>
                       <textarea className="contact-input" placeholder="Share details about scope, deadlines, and expectations." style={{minHeight: '140px', resize: 'vertical'}}></textarea>
                     </div>
-                    <button className="btn-link mt-2" style={{background: 'var(--accent-primary)', color: '#000', border: 'none', width: '100%', padding: '1.2rem', fontSize: '1.05rem'}}>
+                    <button className="btn-link btn-primary mt-2" style={{width: '100%', padding: '1.2rem', fontSize: '1.05rem', fontWeight: 700}}>
                       <Send size={18} /> Send Message
                     </button>
                   </form>
                 </div>
                 
-                {/* Right: Fun Game & Info */}
-                <div className="contact-quote-side" style={{display: 'flex', flexDirection: 'column', gap: '2rem', flex: 1}}>
+                {/* Right: 5 Interactive Games */}
+                <div className="contact-quote-side">
                   <div className="quote-card game-card-container">
-                    <div style={{display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '1rem'}}>
-                      <Gamepad2 size={24} className="text-accent" />
-                      <h3 className="text-primary" style={{fontSize: '1.4rem', fontWeight: 700}}>Let's play a game!</h3>
+                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem'}}>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '0.8rem'}}>
+                        <Gamepad2 size={28} className="text-accent" />
+                        <h3 className="text-primary" style={{fontSize: '1.5rem', fontWeight: 700}}>Play a Game!</h3>
+                      </div>
                     </div>
-                    <p className="text-secondary mb-6" style={{fontSize: '0.95rem'}}>Take a quick Tic-Tac-Toe break before you hit send.</p>
+                    <p className="text-secondary mb-6" style={{fontSize: '0.95rem', lineHeight: 1.6}}>Take a quick break while I review your message</p>
                     
-                    <div className="tic-tac-board">
-                      {board.map((cell, i) => (
-                        <button key={i} className={`tic-tac-cell ${cell === 'X' ? 'cell-x' : cell === 'O' ? 'cell-o' : ''} ${!cell && !calculateWinner(board) ? 'interactive' : ''}`} onClick={() => handleTicTacClick(i)}>
-                          {cell}
+                    {/* Game Selector - 5 games in a row */}
+                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.6rem', marginBottom: '2rem'}}>
+                      {games.map((game) => (
+                        <button
+                          key={game.id}
+                          onClick={() => {
+                            setSelectedGame(game.id);
+                            if (game.id === 0) resetGame();
+                            if (game.id === 2) initMemoryGame();
+                            if (game.id === 3) resetNumberGuess();
+                          }}
+                          className={`game-selector-btn ${selectedGame === game.id ? 'active' : ''}`}
+                          style={{
+                            padding: '1rem 0.5rem',
+                            background: selectedGame === game.id ? 'var(--accent-primary)' : 'var(--card-bg)',
+                            border: '2px solid',
+                            borderColor: selectedGame === game.id ? 'var(--accent-primary)' : 'var(--border-color)',
+                            borderRadius: '0',
+                            color: selectedGame === game.id ? '#000' : 'var(--text-primary)',
+                            cursor: 'pointer',
+                            fontSize: '1.8rem',
+                            transition: 'all 0.3s ease',
+                            fontWeight: '600',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '0.3rem'
+                          }}
+                          title={game.name}
+                        >
+                          <span>{game.icon}</span>
                         </button>
                       ))}
                     </div>
-                    
-                    <div className="game-status mt-6" style={{textAlign: 'center', fontWeight: 'bold'}}>
-                      {calculateWinner(board) 
-                        ? <span className="text-accent" style={{fontSize: '1.1rem'}}>Winner: {calculateWinner(board)}! 🎉</span> 
-                        : board.every(c => c !== null) 
-                          ? <span className="text-secondary" style={{fontSize: '1.1rem'}}>It's a draw! 🤝</span>
-                          : <span className="text-secondary">Next player: <span className="text-primary">{xIsNext ? 'X' : 'O'}</span></span>
-                      }
+
+                    <div style={{minHeight: '350px'}}>
+                      {/* Game 0: Tic Tac Toe */}
+                      {selectedGame === 0 && (
+                        <div>
+                          <h4 className="text-primary" style={{fontSize: '1.2rem', fontWeight: 700, marginBottom: '1rem', textAlign: 'center'}}>Tic Tac Toe</h4>
+                          <div style={{display: 'flex', gap: '0.6rem', marginBottom: '1.5rem', justifyContent: 'center'}}>
+                            <button
+                              onClick={() => { setGameMode('human'); resetGame(); }}
+                              style={{
+                                padding: '0.6rem 1.2rem',
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                                background: gameMode === 'human' ? 'var(--accent-primary)' : 'var(--card-bg)',
+                                color: gameMode === 'human' ? '#000' : 'var(--text-primary)',
+                                border: '2px solid var(--border-color)',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease'
+                              }}
+                            >
+                              👥 Human vs Human
+                            </button>
+                            <button
+                              onClick={() => { setGameMode('ai'); resetGame(); }}
+                              style={{
+                                padding: '0.6rem 1.2rem',
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                                background: gameMode === 'ai' ? 'var(--accent-primary)' : 'var(--card-bg)',
+                                color: gameMode === 'ai' ? '#000' : 'var(--text-primary)',
+                                border: '2px solid var(--border-color)',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease'
+                              }}
+                            >
+                              🤖 Human vs AI
+                            </button>
+                          </div>
+                          <div className="tic-tac-board" style={{marginBottom: '1.5rem'}}>
+                            {board.map((cell, i) => (
+                              <button
+                                key={i}
+                                className={`tic-tac-cell ${cell === 'X' ? 'cell-x' : cell === 'O' ? 'cell-o' : ''}`}
+                                onClick={() => gameMode === 'ai' ? handleTicTacClickAI(i) : handleTicTacClick(i)}
+                              >
+                                {cell}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="game-status" style={{textAlign: 'center', fontWeight: 700, marginBottom: '1rem', fontSize: '1.1rem'}}>
+                            {calculateWinner(board) 
+                              ? <span className="text-accent">🎉 Winner: {calculateWinner(board)}!</span> 
+                              : board.every(c => c !== null) 
+                                ? <span className="text-secondary">🤝 It's a draw!</span>
+                                : <span className="text-secondary">Next: <span className="text-accent">{xIsNext ? 'X' : 'O'}</span></span>
+                            }
+                          </div>
+                          <button className="btn-link btn-secondary" style={{width: '100%', justifyContent: 'center', padding: '0.9rem', fontWeight: 600}} onClick={resetGame}>
+                            🔄 Reset Game
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Game 1: Reflex Test */}
+                      {selectedGame === 1 && (
+                        <div style={{textAlign: 'center'}}>
+                          <h4 className="text-primary" style={{fontSize: '1.2rem', fontWeight: 700, marginBottom: '1.5rem'}}>Reflex Test</h4>
+                          <div
+                            onClick={handleReflexClick}
+                            style={{
+                              padding: '5rem 2rem',
+                              background: reflexReady ? '#10b981' : reflexWaiting ? '#f59e0b' : 'var(--card-bg)',
+                              border: '3px solid var(--border-color)',
+                              cursor: 'pointer',
+                              marginBottom: '1.5rem',
+                              transition: 'all 0.3s ease'
+                            }}
+                          >
+                            <div style={{fontSize: '3rem', marginBottom: '1rem'}}>
+                              {reflexReady ? '🟢' : reflexWaiting ? '🟡' : '⚪'}
+                            </div>
+                            <p className="text-primary" style={{fontWeight: 700, fontSize: '1.1rem'}}>
+                              {reflexReady ? 'CLICK NOW!' : reflexWaiting ? 'Wait for it...' : 'Click to Start'}
+                            </p>
+                          </div>
+                          {reflexTime && (
+                            <div style={{marginBottom: '1rem'}}>
+                              <div className="text-accent" style={{fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem'}}>
+                                {typeof reflexTime === 'number' ? `${reflexTime}ms` : reflexTime}
+                              </div>
+                              {typeof reflexTime === 'number' && (
+                                <p className="text-secondary" style={{fontSize: '0.9rem'}}>
+                                  {reflexTime < 200 ? '⚡ Lightning fast!' : reflexTime < 300 ? '🔥 Great!' : '👍 Good!'}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {reflexBestTime && (
+                            <div className="text-secondary" style={{fontSize: '1rem', marginBottom: '1rem', fontWeight: 600}}>
+                              🏆 Best: {reflexBestTime}ms
+                            </div>
+                          )}
+                          <button className="btn-link btn-secondary" style={{width: '100%', padding: '0.9rem', fontWeight: 600}} onClick={startReflexGame}>
+                            🎯 New Test
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Game 2: Memory Match */}
+                      {selectedGame === 2 && (
+                        <div>
+                          <h4 className="text-primary" style={{fontSize: '1.2rem', fontWeight: 700, marginBottom: '1.5rem', textAlign: 'center'}}>Memory Match</h4>
+                          <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.6rem', marginBottom: '1.5rem'}}>
+                            {memoryCards.map((card, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => handleMemoryCardClick(idx)}
+                                style={{
+                                  padding: '1.8rem 0.5rem',
+                                  fontSize: '2.2rem',
+                                  background: flippedCards.includes(idx) || matchedCards.includes(idx) ? 'var(--accent-primary)' : 'var(--card-bg)',
+                                  border: '2px solid var(--border-color)',
+                                  cursor: matchedCards.includes(idx) ? 'default' : 'pointer',
+                                  transition: 'all 0.3s ease',
+                                  opacity: matchedCards.includes(idx) ? 0.6 : 1
+                                }}
+                              >
+                                {flippedCards.includes(idx) || matchedCards.includes(idx) ? card.emoji : '❓'}
+                              </button>
+                            ))}
+                          </div>
+                          <div style={{textAlign: 'center', marginBottom: '1rem'}}>
+                            <p className="text-secondary" style={{fontSize: '1.1rem', fontWeight: 600}}>
+                              Moves: <span className="text-accent" style={{fontSize: '1.3rem', fontWeight: 700}}>{memoryMoves}</span>
+                            </p>
+                            {matchedCards.length === memoryCards.length && (
+                              <p className="text-accent" style={{fontWeight: 700, marginTop: '0.8rem', fontSize: '1.2rem'}}>
+                                🎉 Perfect! Completed in {memoryMoves} moves!
+                              </p>
+                            )}
+                          </div>
+                          <button className="btn-link btn-secondary" style={{width: '100%', padding: '0.9rem', fontWeight: 600}} onClick={initMemoryGame}>
+                            🔄 New Game
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Game 3: Number Guess */}
+                      {selectedGame === 3 && (
+                        <div>
+                          <h4 className="text-primary" style={{fontSize: '1.2rem', fontWeight: 700, marginBottom: '1rem', textAlign: 'center'}}>Number Guess</h4>
+                          <p className="text-secondary mb-6" style={{textAlign: 'center', fontSize: '1rem', fontWeight: 600, padding: '1rem', background: 'var(--card-bg)', border: '2px solid var(--border-color)'}}>{guessMessage}</p>
+                          <div style={{display: 'flex', gap: '0.6rem', marginBottom: '1.5rem'}}>
+                            <input
+                              type="number"
+                              value={guessInput}
+                              onChange={(e) => setGuessInput(e.target.value)}
+                              onKeyPress={(e) => e.key === 'Enter' && handleNumberGuess()}
+                              placeholder="Enter 1-100"
+                              style={{
+                                flex: 1,
+                                padding: '1rem',
+                                background: 'var(--bg-secondary)',
+                                border: '2px solid var(--border-color)',
+                                color: 'var(--text-primary)',
+                                fontSize: '1.1rem',
+                                fontWeight: 600,
+                                textAlign: 'center'
+                              }}
+                            />
+                            <button 
+                              className="btn-link btn-primary" 
+                              onClick={handleNumberGuess} 
+                              style={{padding: '1rem 1.8rem', fontWeight: 700}}
+                            >
+                              Guess
+                            </button>
+                          </div>
+                          {guessHistory.length > 0 && (
+                            <div style={{marginBottom: '1.5rem'}}>
+                              <p className="text-secondary" style={{fontSize: '0.9rem', marginBottom: '0.8rem', fontWeight: 600}}>Your guesses ({guessHistory.length}):</p>
+                              <div style={{display: 'flex', gap: '0.4rem', flexWrap: 'wrap'}}>
+                                {guessHistory.map((g, i) => (
+                                  <span 
+                                    key={i} 
+                                    style={{
+                                      padding: '0.4rem 0.8rem',
+                                      background: 'var(--card-bg)',
+                                      border: '1px solid var(--border-color)',
+                                      fontSize: '0.85rem',
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    {g}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <button className="btn-link btn-secondary" style={{width: '100%', padding: '0.9rem', fontWeight: 600}} onClick={resetNumberGuess}>
+                            🔄 New Game
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Game 4: Math Quiz */}
+                      {selectedGame === 4 && (
+                        <div>
+                          <h4 className="text-primary" style={{fontSize: '1.2rem', fontWeight: 700, marginBottom: '1.5rem', textAlign: 'center'}}>Math Quiz</h4>
+                          <div style={{textAlign: 'center', marginBottom: '2rem', padding: '2rem', background: 'var(--card-bg)', border: '2px solid var(--border-color)'}}>
+                            <p className="text-primary" style={{fontSize: '3rem', fontWeight: 700, marginBottom: '0.5rem'}}>
+                              {mathQuestion.num1} {mathQuestion.op} {mathQuestion.num2} = ?
+                            </p>
+                          </div>
+                          <div style={{display: 'flex', gap: '0.6rem', marginBottom: '1.5rem'}}>
+                            <input
+                              type="number"
+                              value={mathAnswer}
+                              onChange={(e) => setMathAnswer(e.target.value)}
+                              onKeyPress={(e) => e.key === 'Enter' && handleMathSubmit()}
+                              placeholder="Answer"
+                              style={{
+                                flex: 1,
+                                padding: '1rem',
+                                background: 'var(--bg-secondary)',
+                                border: '2px solid var(--border-color)',
+                                color: 'var(--text-primary)',
+                                fontSize: '1.1rem',
+                                fontWeight: 600,
+                                textAlign: 'center'
+                              }}
+                            />
+                            <button 
+                              className="btn-link btn-primary" 
+                              onClick={handleMathSubmit} 
+                              style={{padding: '1rem 1.8rem', fontWeight: 700}}
+                            >
+                              Submit
+                            </button>
+                          </div>
+                          <div style={{textAlign: 'center'}}>
+                            <p className="text-secondary" style={{fontSize: '1.1rem', fontWeight: 600}}>
+                              Score: <span className="text-accent" style={{fontSize: '1.5rem', fontWeight: 700}}>{mathScore}/{mathTotal}</span>
+                            </p>
+                            {mathTotal > 0 && (
+                              <p className="text-secondary" style={{fontSize: '0.9rem', marginTop: '0.5rem'}}>
+                                Accuracy: {Math.round((mathScore / mathTotal) * 100)}%
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    
-                    <button className="btn-link mt-4" style={{width: '100%', justifyContent: 'center'}} onClick={(e) => { e.preventDefault(); resetGame(); }}>
-                      Reset Game
-                    </button>
                   </div>
-                  
-                  <div className="contact-info-mini glass-panel" style={{padding: '2rem', borderRadius: '16px'}}>
-                      <div className="contact-info-item mb-4" style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
-                        <div style={{width: '40px', height: '40px', borderRadius: '50%', background: 'var(--card-bg)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                          <Mail size={18} className="text-accent" />
-                        </div>
-                        <span className="text-primary" style={{fontWeight: 500}}>viveksawji@gmail.com</span>
-                      </div>
-                      <div className="contact-info-item" style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
-                         <div style={{width: '40px', height: '40px', borderRadius: '50%', background: 'var(--card-bg)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                          <MapPin size={18} className="text-accent" />
-                        </div>
-                        <span className="text-primary" style={{fontWeight: 500}}>Mumbai, Maharashtra, India</span>
-                      </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ===== FOOTER SECTION ===== */}
+            <section className="unified-section border-top-subtle">
+              {/* Top: Big brand line */}
+              <div className="footer-brand-section">
+                <div className="footer-brand">
+                  <span className="footer-logo-text">VS</span>
+                  <div className="footer-brand-info">
+                    <h3 className="footer-brand-name">Vivek Sawji</h3>
+                    <p className="footer-brand-role">Full Stack Developer & Designer</p>
                   </div>
+                </div>
+                <p className="footer-tagline">
+                  Crafting digital experiences that combine clean code, smooth interactions, and thoughtful design.
+                </p>
+              </div>
+
+              {/* Middle: Links Grid */}
+              <div className="footer-links-grid">
+                <div className="footer-link-col">
+                  <h4 className="footer-col-title">Navigation</h4>
+                  <a href="#home" className="footer-link">Home</a>
+                  <a href="#about" className="footer-link">About</a>
+                  <a href="#experience" className="footer-link">Experience</a>
+                  <a href="#skills" className="footer-link">Skills</a>
+                </div>
+                <div className="footer-link-col">
+                  <h4 className="footer-col-title">Work</h4>
+                  <a href="#projects" className="footer-link">Projects</a>
+                  <a href="#blog" className="footer-link">Blog</a>
+                  <a href="#testimonials" className="footer-link">Testimonials</a>
+                  <a href="#contact" className="footer-link">Contact</a>
+                </div>
+                <div className="footer-link-col">
+                  <h4 className="footer-col-title">Connect</h4>
+                  <a href="https://github.com/vivekx11" target="_blank" rel="noreferrer" className="footer-link">GitHub</a>
+                  <a href="https://www.linkedin.com/in/vivek-sawji-050a942b8" target="_blank" rel="noreferrer" className="footer-link">LinkedIn</a>
+                  <a href="https://twitter.com/viveksawji" target="_blank" rel="noreferrer" className="footer-link">Twitter</a>
+                  <a href="https://instagram.com/vivekx___" target="_blank" rel="noreferrer" className="footer-link">Instagram</a>
+                </div>
+                <div className="footer-link-col">
+                  <h4 className="footer-col-title">Get in Touch</h4>
+                  <div className="footer-contact-item">
+                    <Mail size={14} className="text-accent" />
+                    <span>viveksawji@gmail.com</span>
+                  </div>
+                  <div className="footer-contact-item">
+                    <MapPin size={14} className="text-accent" />
+                    <span>Mumbai, India</span>
+                  </div>
+                  <div className="footer-contact-item">
+                    <Clock size={14} className="text-accent" />
+                    <span>IST (UTC+5:30)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom: Copyright + Socials + Back to top */}
+              <div className="footer-bottom">
+                <div className="footer-bottom-left">
+                  <p className="footer-copyright">© 2026 Vivek Sawji. All rights reserved.</p>
+                  <p className="footer-made-with">
+                    Crafted with <Heart size={12} className="text-accent" fill="var(--accent-primary)" /> using React, GSAP & caffeine.
+                  </p>
+                </div>
+                <div className="footer-bottom-right">
+                  <div className="footer-social-row">
+                    <a href="https://github.com/vivekx11" target="_blank" rel="noreferrer" className="social-icon footer-social"><Github size={16}/></a>
+                    <a href="https://www.linkedin.com/in/vivek-sawji-050a942b8" target="_blank" rel="noreferrer" className="social-icon footer-social"><Linkedin size={16}/></a>
+                    <a href="https://twitter.com/viveksawji" target="_blank" rel="noreferrer" className="social-icon footer-social"><Twitter size={16}/></a>
+                    <a href="https://instagram.com/vivekx___" target="_blank" rel="noreferrer" className="social-icon footer-social"><Instagram size={16}/></a>
+                  </div>
+                  <button className="back-to-top" onClick={scrollToTop} aria-label="Back to top">
+                    <ChevronUp size={20} />
+                    <span>Back to top</span>
+                  </button>
                 </div>
               </div>
             </section>
             
           </div>
         </div>
-
-        {/* ===== ADVANCED FOOTER ===== */}
-        <footer className="premium-footer">
-          <div className="footer-inner">
-            {/* Top: Big brand line */}
-            <div className="footer-brand-section">
-              <div className="footer-brand">
-                <span className="footer-logo-text">VS</span>
-                <div className="footer-brand-info">
-                  <h3 className="footer-brand-name">Vivek Sawji</h3>
-                  <p className="footer-brand-role">Full Stack Developer & Designer</p>
-                </div>
-              </div>
-              <p className="footer-tagline">
-                Crafting digital experiences that combine clean code, smooth interactions, and thoughtful design.
-              </p>
-            </div>
-
-            {/* Middle: Links Grid */}
-            <div className="footer-links-grid">
-              <div className="footer-link-col">
-                <h4 className="footer-col-title">Navigation</h4>
-                <a href="#home" className="footer-link">Home</a>
-                <a href="#about" className="footer-link">About</a>
-                <a href="#experience" className="footer-link">Experience</a>
-                <a href="#skills" className="footer-link">Skills</a>
-              </div>
-              <div className="footer-link-col">
-                <h4 className="footer-col-title">Work</h4>
-                <a href="#projects" className="footer-link">Projects</a>
-                <a href="#blog" className="footer-link">Blog</a>
-                <a href="#testimonials" className="footer-link">Testimonials</a>
-                <a href="#contact" className="footer-link">Contact</a>
-              </div>
-              <div className="footer-link-col">
-                <h4 className="footer-col-title">Connect</h4>
-                <a href="https://github.com/vivekx11" target="_blank" rel="noreferrer" className="footer-link">GitHub</a>
-                <a href="https://www.linkedin.com/in/vivek-sawji-050a942b8" target="_blank" rel="noreferrer" className="footer-link">LinkedIn</a>
-                <a href="https://twitter.com/viveksawji" target="_blank" rel="noreferrer" className="footer-link">Twitter</a>
-                <a href="https://instagram.com/vivekx___" target="_blank" rel="noreferrer" className="footer-link">Instagram</a>
-              </div>
-              <div className="footer-link-col">
-                <h4 className="footer-col-title">Get in Touch</h4>
-                <div className="footer-contact-item">
-                  <Mail size={14} className="text-accent" />
-                  <span>viveksawji@gmail.com</span>
-                </div>
-                <div className="footer-contact-item">
-                  <MapPin size={14} className="text-accent" />
-                  <span>Mumbai, India</span>
-                </div>
-                <div className="footer-contact-item">
-                  <Clock size={14} className="text-accent" />
-                  <span>IST (UTC+5:30)</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom: Copyright + Socials + Back to top */}
-            <div className="footer-bottom">
-              <div className="footer-bottom-left">
-                <p className="footer-copyright">© 2026 Vivek Sawji. All rights reserved.</p>
-                <p className="footer-made-with">
-                  Crafted with <Heart size={12} className="text-accent" fill="var(--accent-primary)" /> using React, GSAP & caffeine.
-                </p>
-              </div>
-              <div className="footer-bottom-right">
-                <div className="footer-social-row">
-                  <a href="https://github.com/vivekx11" target="_blank" rel="noreferrer" className="social-icon footer-social"><Github size={16}/></a>
-                  <a href="https://www.linkedin.com/in/vivek-sawji-050a942b8" target="_blank" rel="noreferrer" className="social-icon footer-social"><Linkedin size={16}/></a>
-                  <a href="https://twitter.com/viveksawji" target="_blank" rel="noreferrer" className="social-icon footer-social"><Twitter size={16}/></a>
-                  <a href="https://instagram.com/vivekx___" target="_blank" rel="noreferrer" className="social-icon footer-social"><Instagram size={16}/></a>
-                </div>
-                <button className="back-to-top" onClick={scrollToTop} aria-label="Back to top">
-                  <ChevronUp size={20} />
-                  <span>Back to top</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </footer>
 
       </main>
     </div>
