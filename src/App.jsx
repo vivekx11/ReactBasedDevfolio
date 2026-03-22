@@ -73,6 +73,7 @@ function App() {
   const [theme, setTheme] = useState('dark');
   const [time, setTime] = useState(new Date().toLocaleTimeString());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   
   // Game State
   const [selectedGame, setSelectedGame] = useState(0); // 0-4 for 5 games
@@ -184,12 +185,21 @@ function App() {
   };
 
   // Memory Game
-  const emojis = ['🎮', '🎯', '🎨', '🎭', '🎪', '🎸', '🎺', '🎻'];
+  const memoryImages = [
+    'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=200&h=200&fit=crop',
+    'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=200&h=200&fit=crop',
+    'https://images.unsplash.com/photo-1557683316-973673baf926?w=200&h=200&fit=crop',
+    'https://images.unsplash.com/photo-1579546929662-711aa81148cf?w=200&h=200&fit=crop',
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop',
+    'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=200&h=200&fit=crop',
+    'https://images.unsplash.com/photo-1557682224-5b8590cd9ec5?w=200&h=200&fit=crop',
+    'https://images.unsplash.com/photo-1557682268-e3955ed5d83f?w=200&h=200&fit=crop'
+  ];
   
   const initMemoryGame = () => {
-    const shuffled = [...emojis, ...emojis]
+    const shuffled = [...memoryImages, ...memoryImages]
       .sort(() => Math.random() - 0.5)
-      .map((emoji, idx) => ({ id: idx, emoji, flipped: false }));
+      .map((image, idx) => ({ id: idx, image, flipped: false }));
     setMemoryCards(shuffled);
     setFlippedCards([]);
     setMatchedCards([]);
@@ -205,7 +215,7 @@ function App() {
     if (newFlipped.length === 2) {
       setMemoryMoves(memoryMoves + 1);
       const [first, second] = newFlipped;
-      if (memoryCards[first].emoji === memoryCards[second].emoji) {
+      if (memoryCards[first].image === memoryCards[second].image) {
         setMatchedCards([...matchedCards, first, second]);
         setFlippedCards([]);
       } else {
@@ -607,9 +617,21 @@ function App() {
       );
     });
 
+    // Show/hide back to top button on scroll
+    const handleScroll = () => {
+      if (window.scrollY > 500) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+
     return () => {
       clearInterval(timer);
       window.removeEventListener('mousemove', moveCursor);
+      window.removeEventListener('scroll', handleScroll);
       lenis.destroy();
       interactiveElements.forEach(el => {
         el.removeEventListener('mouseenter', handleHover);
@@ -706,6 +728,15 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/* Floating Back to Top Button */}
+      <button 
+        className={`floating-back-to-top ${showBackToTop ? 'visible' : ''}`} 
+        onClick={scrollToTop} 
+        aria-label="Back to top"
+      >
+        <ChevronUp size={24} />
+      </button>
 
       <main className="main-content">
         <div className="unified-wrapper">
@@ -1305,16 +1336,42 @@ function App() {
                                 key={idx}
                                 onClick={() => handleMemoryCardClick(idx)}
                                 style={{
-                                  padding: '1.8rem 0.5rem',
-                                  fontSize: '2.2rem',
-                                  background: flippedCards.includes(idx) || matchedCards.includes(idx) ? 'var(--accent-primary)' : 'var(--card-bg)',
+                                  padding: '0',
+                                  aspectRatio: '1',
+                                  background: 'var(--card-bg)',
                                   border: '2px solid var(--border-color)',
                                   cursor: matchedCards.includes(idx) ? 'default' : 'pointer',
                                   transition: 'all 0.3s ease',
-                                  opacity: matchedCards.includes(idx) ? 0.6 : 1
+                                  opacity: matchedCards.includes(idx) ? 0.6 : 1,
+                                  overflow: 'hidden',
+                                  position: 'relative',
+                                  borderRadius: '8px'
                                 }}
                               >
-                                {flippedCards.includes(idx) || matchedCards.includes(idx) ? card.emoji : '❓'}
+                                {flippedCards.includes(idx) || matchedCards.includes(idx) ? (
+                                  <img 
+                                    src={card.image} 
+                                    alt="Memory card" 
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'cover'
+                                    }}
+                                  />
+                                ) : (
+                                  <div style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '2rem',
+                                    background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+                                    color: '#000'
+                                  }}>
+                                    ❓
+                                  </div>
+                                )}
                               </button>
                             ))}
                           </div>
@@ -1322,7 +1379,7 @@ function App() {
                             <p className="text-secondary" style={{fontSize: '1.1rem', fontWeight: 600}}>
                               Moves: <span className="text-accent" style={{fontSize: '1.3rem', fontWeight: 700}}>{memoryMoves}</span>
                             </p>
-                            {matchedCards.length === memoryCards.length && (
+                            {matchedCards.length === memoryCards.length && memoryCards.length > 0 && (
                               <p className="text-accent" style={{fontWeight: 700, marginTop: '0.8rem', fontSize: '1.2rem'}}>
                                 🎉 Perfect! Completed in {memoryMoves} moves!
                               </p>
@@ -1501,7 +1558,7 @@ function App() {
                 </div>
               </div>
 
-              {/* Bottom: Copyright + Socials + Back to top */}
+              {/* Bottom: Copyright + Socials */}
               <div className="footer-bottom">
                 <div className="footer-bottom-left">
                   <p className="footer-copyright">© 2026 Vivek Sawji. All rights reserved.</p>
@@ -1516,10 +1573,6 @@ function App() {
                     <a href="https://twitter.com/viveksawji" target="_blank" rel="noreferrer" className="social-icon footer-social"><Twitter size={16}/></a>
                     <a href="https://instagram.com/vivekx___" target="_blank" rel="noreferrer" className="social-icon footer-social"><Instagram size={16}/></a>
                   </div>
-                  <button className="back-to-top" onClick={scrollToTop} aria-label="Back to top">
-                    <ChevronUp size={20} />
-                    <span>Back to top</span>
-                  </button>
                 </div>
               </div>
             </section>
