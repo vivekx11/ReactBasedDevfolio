@@ -4,7 +4,7 @@ import './index.css'
 import App from './App.jsx'
 
 // connect to site 
-
+// not so complex
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />
