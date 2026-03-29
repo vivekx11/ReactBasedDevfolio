@@ -1,4 +1,4 @@
-# React + Vite (Basic)
+# React + Vite 
 see it on this link 
 https://reactbaseddevfoliobyvivekx11.onrender.com
 -------------------
