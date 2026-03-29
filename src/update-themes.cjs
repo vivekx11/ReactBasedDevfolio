@@ -1,5 +1,6 @@
 
 // this file represent the whole ui ux and colour palate of the site 
+// path of the folder
 
 const fs = require('fs');
 const path = require('path');
