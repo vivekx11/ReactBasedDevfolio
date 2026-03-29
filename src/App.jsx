@@ -547,11 +547,6 @@ function App() {
       { y: 0, opacity: 1, duration: 1, ease: "power3.out" },
       "-=0.7"
     )
-    .fromTo('.hero-name-text span',
-      { y: 50, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.8, stagger: 0.03, ease: "power4.out" },
-      "-=0.7"
-    )
     .fromTo('.hero-bio',
       { x: -30, opacity: 0, filter: "blur(10px)" },
       { x: 0, opacity: 1, filter: "blur(0px)", duration: 1, ease: "power3.out" },
@@ -741,15 +736,7 @@ function App() {
       <main className="main-content">
         <div className="unified-wrapper">
           {/* Top Floating Badges */}
-          <div className="hero-top-badges">
-            <div className="badge hover-glow" style={{padding: '0.6rem 1.2rem', borderColor: 'var(--border-color)', color: 'var(--text-primary)'}}>
-              Good Morning {time} 
-            </div>
-            <div className="badge hover-glow" style={{borderColor: 'var(--border-color)', color: 'var(--text-primary)'}}>
-              <span className="pulse-dot-green"></span>
-              Available for work
-            </div>
-          </div>
+          {/* Top Floating Badges Removed */}
 
           {/* SINGLE CONTINUOUS CONTAINER UI */}
           <div className="unified-container" ref={containerRef}>
@@ -759,13 +746,10 @@ function App() {
               <div className="hero-split">
                 {/* Left: Name & Info */}
                 <div className="hero-left">
-                  <div className="badge primary-badge mb-4">Available for new opportunities</div>
-                  <div className="title-content" style={{flexDirection: 'column', alignItems: 'flex-start', gap: '0.2rem'}}>
-                    <h1 className="hero-title">
-                      {splitText("Vivek")}
-                    </h1>
-                    <h1 className="hero-title text-accent" style={{fontWeight: 300}}>
-                      {splitText("Sawji")}
+
+                  <div className="title-content" style={{display: 'flex', alignItems: 'center', gap: '1.2rem'}}>
+                    <h1 className="hero-title hero-title-text hero-name-text">
+                      {splitText("Vivek")} <span className="text-accent">{splitText("Sawji")}</span>
                     </h1>
                   </div>
                   
@@ -790,29 +774,25 @@ function App() {
                 <div className="hero-right">
                   <div className="hero-image-container">
                     <div className="hero-image-glow"></div>
-                    <img 
-                      src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800" 
-                      alt="Vivek Workspace" 
-                      className="hero-profile-image"
+                    <iframe 
+                      src="/profile-animation.html" 
+                      style={{ 
+                        width: '100%', 
+                        height: '100%', 
+                        border: 'none', 
+                        overflow: 'hidden',
+                        backgroundColor: 'transparent'
+                      }} 
+                      title="Profile Animation"
+                      scrolling="no"
+                      loading="lazy"
                     />
                     <div className="hero-image-border"></div>
                     <div className="hero-image-overlay">
                       <span>Based in Mumbai, India</span>
                     </div>
                   </div>
-                  {/* Floating mini cards around image */}
-                  <div className="hero-float-card hero-float-1 glass-panel">
-                    <div className="icon-circle shadow-sm">
-                      <Zap size={16} className="text-accent" />
-                    </div>
-                    <span>Fast Performance</span>
-                  </div>
-                  <div className="hero-float-card hero-float-2 glass-panel">
-                    <div className="icon-circle shadow-sm">
-                      <Layers size={16} className="text-accent" />
-                    </div>
-                    <span>Full Stack Architecture</span>
-                  </div>
+                  {/* Floating mini cards removed */}
                 </div>
               </div>
 
