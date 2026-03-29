@@ -1,4 +1,5 @@
-// basic react file it is and the logo and all //
+// basic react file it is and the logo and all
+// import file 
 import { useEffect, useState, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
