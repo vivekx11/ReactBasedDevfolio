@@ -1,10 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
-// normmal vite are in use 
 export default defineConfig({
   plugins: [react()],
+  base: "/",   // ✅ ADD THIS LINE (VERY IMPORTANT)
+
   build: {
     minify: 'terser',
     terserOptions: {
@@ -13,14 +13,12 @@ export default defineConfig({
         drop_debugger: true,
       },
     },
-    // We'll keep it simple for now to ensure build stability
     rollupOptions: {
       output: {
-        manualChunks: undefined, // Rollback to default automatic splitting
+        manualChunks: undefined,
       },
     },
     chunkSizeWarningLimit: 1000,
     cssMinify: true,
   },
 })
-// end 
