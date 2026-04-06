@@ -221,7 +221,7 @@ a {
   transform: translateY(-2px);
 }
 `;
-// the above is colour grid 
+// the above is colour grid ..
 fs.writeFileSync(indexCssPath, newIndexCss);
 
 const appCssPath = 'c:\\Users\\Vivek\\OneDrive\\Desktop\\DOCS\\parallex\\r\\portfolio\\src\\App.css';
